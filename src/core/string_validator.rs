@@ -29,7 +29,7 @@ pub fn validate_string(
                     })
                     .collect();
 
-                if !available_strs.contains(&value.to_string()) {
+                if available_strs.len() > 0 && !available_strs.contains(&value.to_string()) {
                     return Some(ValidateError::StringMisMatch(
                         key.to_string(),
                         value.to_string(),

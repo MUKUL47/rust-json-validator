@@ -5,7 +5,7 @@ use json::JsonValue;
 use crate::{
     error::{ErrorController, ValidateError},
     schema::{
-        schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type},
+        schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type, TypeValidator},
         SCHEMA_TYPE,
     },
 };
@@ -149,7 +149,7 @@ impl Parser {
         match self.schema.get(key) {
             Some(v) => {
                 for i in v.into_iter() {
-                    if !curren_types.contains(&i.0.to_string()) {
+                    if !curren_types.contains(&i.0.to_string()) && !i.1.is_required() {
                         missing_types.push(i.0.clone());
                     }
                 }

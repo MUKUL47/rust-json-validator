@@ -1,6 +1,8 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum StringOptions {
+    Required,
     ShouldMatch(&'static str),
+    Example(&'static str),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum ObjectOptions {
@@ -10,8 +12,9 @@ pub enum ObjectOptions {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Options{
+pub enum ArrayOptions{
     Required,
     Example(&'static str),
-    ObjectOptions(ObjectOptions),
+    NestedRequired,
+    AllowUnknown,
 }

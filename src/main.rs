@@ -7,17 +7,17 @@ mod schema;
 use json::{number::Number, object::Object, parse};
 use schema::{
     schema_type::Record,
-    schema_type_options::{ObjectOptions, Options, StringOptions},
+    schema_type_options::{ArrayOptions, ObjectOptions, StringOptions},
     Schema,
 };
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"["1ss23"]"#).unwrap();
-    let s = Schema::array(vec![Schema::string_options(vec![
-        StringOptions::ShouldMatch("123"),
-        StringOptions::ShouldMatch("1s23"),
-    ])]);
+    let a = parse(r#"["123231", []]"#).unwrap();
+    let s = Schema::array(vec![
+        Schema::string_options(vec![StringOptions::Required]),
+        Schema::array_options(vec![], vec![ArrayOptions::AllowUnknown]),
+    ]);
 
     let mut pp = SchemaParser::new();
     pp.parse(s.clone(), vec![]);

@@ -1,4 +1,4 @@
-use super::schema_type_options::{ObjectOptions, Options, StringOptions};
+use super::schema_type_options::{ObjectOptions, ArrayOptions, StringOptions};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -13,6 +13,28 @@ pub enum Type {
     None,
     Null(NullType),
 }
+
+pub trait TypeValidator {
+    fn is_required(&self) -> bool;
+    fn allow_unknown(&self) -> bool;
+}
+
+impl TypeValidator for Type {
+    fn is_required(&self) -> bool {
+        match self {
+            Type::StringTypeOptions(o) => o.options.contains(&StringOptions::Required),
+            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::Required),
+            _ => return false,
+        }
+    }
+    fn allow_unknown(&self) -> bool {
+        match self {
+            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::AllowUnknown),
+            _ => return false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum MatchType {
     String,
@@ -83,7 +105,7 @@ pub struct ArrayType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArrayTypeOptions {
     pub children: Vec<Type>,
-    pub options: Vec<Options>,
+    pub options: Vec<ArrayOptions>,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanType;
