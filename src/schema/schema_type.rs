@@ -2,11 +2,9 @@ use super::schema_type_options::{ObjectOptions, ArrayOptions, StringOptions};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
-    StringType(StringType),
     StringTypeOptions(StringTypeOptions),
     NumberType(NumberType),
     ObjectType(ObjectType),
-    ArrayType(ArrayType),
     ArrayTypeOptions(ArrayTypeOptions),
     BooleanType(BooleanType),
     AnyType(AnyType),

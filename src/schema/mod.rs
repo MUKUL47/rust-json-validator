@@ -13,7 +13,7 @@ pub struct Schema;
 
 impl Schema {
     pub fn string() -> Type {
-        Type::StringType(StringType)
+        Type::StringTypeOptions(StringTypeOptions { options: vec![] })
     }
     pub fn string_options(options: Vec<StringOptions>) -> Type {
         Type::StringTypeOptions(StringTypeOptions { options })
@@ -35,7 +35,7 @@ impl Schema {
         Type::ObjectType(ObjectType { records })
     }
     pub fn array(children: Vec<Type>) -> Type {
-        Type::ArrayType(ArrayType { children })
+        Type::ArrayTypeOptions(ArrayTypeOptions { children, options: vec![] })
     }
     pub fn array_options(children: Vec<Type>, options: Vec<ArrayOptions>) -> Type {
         Type::ArrayTypeOptions(ArrayTypeOptions { children, options })

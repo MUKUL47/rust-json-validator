@@ -21,7 +21,7 @@ pub struct Parser {
 impl Parser {
     pub fn new(first_type: Type, schema: HashMap<String, Vec<(MatchType, Type)>>) -> Self {
         let first_type_val = match first_type {
-            Type::ArrayType(_) => vec!["Array".to_string()],
+            Type::ArrayTypeOptions(_) => vec!["Array".to_string()],
             Type::ObjectType(_) => vec!["Object".to_string()],
             _ => panic!("Expected Array or Object"),
         };
@@ -51,12 +51,13 @@ impl Parser {
                 if self.has_any(&arr_key) {
                     return;
                 }
-                let mut hs = HashSet::new();
+                let mut existing_types = HashSet::new();
                 for s in v.into_iter() {
-                    hs.insert(SchemaParser::get_match_from_json(&s).to_string());
+                    let j_key = SchemaParser::get_match_from_json(&s).to_string();
+                    existing_types.insert(j_key);
                     self.continue_validate(s, k_clone.clone());
                 }
-                self.check_missing_types(&arr_key, &hs);
+                self.check_missing_types(&arr_key, &existing_types);
             }
             JsonValue::Boolean(_) => {
                 self.check_has_type(&hash_key, MatchType::Boolean);
@@ -89,7 +90,6 @@ impl Parser {
                     self.continue_validate(v.clone(), cc.clone());
                 }
             }
-            _ => {}
         }
     }
 
@@ -149,7 +149,7 @@ impl Parser {
         match self.schema.get(key) {
             Some(v) => {
                 for i in v.into_iter() {
-                    if !curren_types.contains(&i.0.to_string()) && !i.1.is_required() {
+                    if !curren_types.contains(&i.0.to_string()) && i.1.is_required() {
                         missing_types.push(i.0.clone());
                     }
                 }

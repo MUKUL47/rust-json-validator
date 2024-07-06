@@ -1,5 +1,5 @@
 use crate::schema::{
-    schema_type::{MatchType, Type},
+    schema_type::{ArrayTypeOptions, MatchType, Type},
     Schema,
 };
 use std::collections::HashMap;
@@ -16,10 +16,10 @@ impl SchemaParser {
         }
     }
     pub fn parse(&mut self, t: Type, kk: Vec<String>) {
-        let mut keys = kk.clone();
+        let mut keys: Vec<String> = kk.clone();
         if keys.len() == 0 {
             keys = match t {
-                Type::ArrayType(_) => vec!["Array".to_string()],
+                Type::ArrayTypeOptions(_) => vec!["Array".to_string()],
                 Type::ObjectType(_) => vec!["Object".to_string()],
                 _ => panic!("Expected Array or Object"),
             };
@@ -31,7 +31,7 @@ impl SchemaParser {
             }
         }
         match t {
-            Type::ArrayType(v) => {
+            Type::ArrayTypeOptions(v) => {
                 for c in v.children.into_iter().enumerate() {
                     let mut vec_clone = keys.clone();
                     vec_clone.push("[INDEX]".to_string());
@@ -47,10 +47,7 @@ impl SchemaParser {
                     SchemaParser::parse(self, c.1 .1, vec_clone);
                 }
             }
-            _ => {
-                // self.k.push(keys.clone());
-                // self.push(keys, t);
-            }
+            _ => {}
         }
     }
 
@@ -72,11 +69,9 @@ impl SchemaParser {
     fn get_type_match(t: &Type) -> MatchType {
         match t {
             Type::AnyType(_) => MatchType::Any,
-            Type::ArrayType(_) => MatchType::Array,
             Type::ArrayTypeOptions(_) => MatchType::Array,
             Type::BooleanType(_) => MatchType::Boolean,
             Type::ObjectType(_) => MatchType::Object,
-            Type::StringType(_) => MatchType::String,
             Type::StringTypeOptions(_) => MatchType::String,
             Type::None => MatchType::None,
             Type::Null(_) => MatchType::Null,
