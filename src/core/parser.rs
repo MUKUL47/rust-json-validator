@@ -37,11 +37,11 @@ impl Parser {
     fn continue_validate(&mut self, json: json::JsonValue, keys: Vec<String>) {
         let mut k_clone = keys.clone();
         let hash_key = Parser::get_hash(&k_clone);
+        if self.is_missing_type(&hash_key) {
+            return;
+        }
         match json {
             JsonValue::Array(v) => {
-                if self.is_missing_type(&hash_key) {
-                    return;
-                }
                 self.check_has_type(&hash_key, MatchType::Array);
                 k_clone.push(INDEX.to_string());
                 let arr_key = Parser::get_hash(&k_clone);
@@ -68,24 +68,15 @@ impl Parser {
                 self.check_has_type(&hash_key, MatchType::Number);
             }
             JsonValue::Object(records) => {
-                if self.is_missing_type(&hash_key) {
-                    return;
-                }
                 self.check_has_type(&hash_key, MatchType::Object);
                 for (k, v) in records.iter() {
                     let mut cc = k_clone.clone();
                     cc.push(k.to_string());
                     let cc_key = Parser::get_hash(&cc);
-                    if self.is_missing_type(&cc_key) {
+                    if self.is_missing_type(&cc_key) || self.has_any(&cc_key){
                         return;
                     }
-                    if self.has_any(&cc_key) {
-                        return;
-                    }
-                    self.check_has_type(
-                        &cc_key,
-                        SchemaParser::get_match_from_json(v),
-                    );
+                    self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v));
                     self.continue_validate(v.clone(), cc.clone());
                 }
             }
@@ -99,9 +90,11 @@ impl Parser {
 
     fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) {
         match self.has_type(&hash_key, target_type.clone()) {
-            (false, vec) => self
-                .error_controller
-                .throw_error(ValidateError::Expected(hash_key.to_string(), target_type, vec)),
+            (false, vec) => self.error_controller.throw_error(ValidateError::Expected(
+                hash_key.to_string(),
+                target_type,
+                vec,
+            )),
             _ => {}
         }
     }
@@ -150,24 +143,27 @@ impl Parser {
             None => {}
         }
         if missing_types.len() > 0 {
-            self.error_controller
-                .throw_error(ValidateError::MissingTypes(key.clone(), missing_types))
+            self.throw_error(ValidateError::MissingTypes(key.clone(), missing_types))
         }
     }
 
     fn is_missing_type(&mut self, key: &String) -> bool {
         match self.schema.get(key) {
             None => {
-                self.error_controller.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
+                self.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
                 return true;
-            },
+            }
             Some(v) => {
                 if v.len() == 0 {
-                    self.error_controller.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
+                    self.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
                     return true;
                 }
                 return false;
-            },
+            }
         }
+    }
+
+    fn throw_error(&mut self, error: ValidateError) {
+        self.error_controller.throw_error(error);
     }
 }

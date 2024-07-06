@@ -14,15 +14,7 @@ mod core;
 mod error;
 fn main() {
     let a = parse(
-        r#"
-    [{
-        "key": [
-            123
-        ],
-        "key2": [
-            123
-        ]
-    },{"key" : {}}]"#,
+        r#"[{ "a" : [] },[]]"#,
     )
     .unwrap();
     println!("{:}", a);
