@@ -61,7 +61,7 @@ pub enum Record {
 pub struct StringType;
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringTypeOptions {
-    pub options: Vec<Options>,
+    pub options: Vec<StringOptions>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

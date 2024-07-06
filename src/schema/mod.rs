@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use schema_type::{AnyType, ArrayType, ArrayTypeOptions, BooleanType, NullType, StringTypeOptions};
+use schema_type::{AnyType, ArrayType, ArrayTypeOptions, BooleanType, MatchType, NullType, StringTypeOptions};
 use schema_type::{NumberType, ObjectType, Record, StringType, Type};
 use schema_type_options::{ObjectOptions, Options, StringOptions};
 
 pub mod schema_type;
 pub mod schema_type_options;
 pub mod schema_validator;
+pub type SCHEMA_TYPE = HashMap<String, Vec<(MatchType, Type)>>;
 
 pub struct Schema;
 
@@ -14,7 +15,7 @@ impl Schema {
     pub fn string() -> Type {
         Type::StringType(StringType)
     }
-    pub fn string_options(options: Vec<Options>) -> Type {
+    pub fn string_options(options: Vec<StringOptions>) -> Type {
         Type::StringTypeOptions(StringTypeOptions { options })
     }
 

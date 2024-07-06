@@ -5,6 +5,7 @@ pub enum ValidateError {
     Expected(String, MatchType, Vec<MatchType>),
     MissingTypes(String, Vec<MatchType>),
     UnexpectedTypes(String),
+    StringMisMatch(String, String, Vec<String>)
 }
 
 pub struct ErrorController {

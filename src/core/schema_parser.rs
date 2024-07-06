@@ -88,7 +88,7 @@ impl SchemaParser {
         match jv {
             json::JsonValue::Array(_) => MatchType::Array,
             json::JsonValue::Boolean(_) => MatchType::Boolean,
-            json::JsonValue::String(_) => MatchType::String,
+            json::JsonValue::String(_) | json::JsonValue::Short(_) => MatchType::String,
             json::JsonValue::Null => MatchType::Null,
             json::JsonValue::Number(_) => MatchType::Number,
             json::JsonValue::Object(_) => MatchType::Object,

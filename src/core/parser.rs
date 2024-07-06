@@ -4,14 +4,17 @@ use json::JsonValue;
 
 use crate::{
     error::{ErrorController, ValidateError},
-    schema::schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type},
+    schema::{
+        schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type},
+        SCHEMA_TYPE,
+    },
 };
 
-use super::schema_parser::SchemaParser;
+use super::{schema_parser::SchemaParser, string_validator::validate_string};
 
 pub struct Parser {
     first_type: Type,
-    schema: HashMap<String, Vec<(MatchType, Type)>>,
+    schema: SCHEMA_TYPE,
     first_type_val: Vec<String>,
     pub error_controller: ErrorController,
 }
@@ -58,8 +61,14 @@ impl Parser {
             JsonValue::Boolean(_) => {
                 self.check_has_type(&hash_key, MatchType::Boolean);
             }
-            JsonValue::String(_) => {
-                self.check_has_type(&hash_key, MatchType::String);
+            JsonValue::String(_) | JsonValue::Short(_) => {
+                if !self.check_has_type(&hash_key, MatchType::String) {
+                    return;
+                }
+                match validate_string(&self.schema, &json, &hash_key) {
+                    Some(e) => self.throw_error(e),
+                    _ => {}
+                }
             }
             JsonValue::Null => {
                 self.check_has_type(&hash_key, MatchType::Null);
@@ -73,7 +82,7 @@ impl Parser {
                     let mut cc = k_clone.clone();
                     cc.push(k.to_string());
                     let cc_key = Parser::get_hash(&cc);
-                    if self.is_missing_type(&cc_key) || self.has_any(&cc_key){
+                    if self.is_missing_type(&cc_key) || self.has_any(&cc_key) {
                         return;
                     }
                     self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v));
@@ -88,14 +97,19 @@ impl Parser {
         return keys.join(".");
     }
 
-    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) {
+    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) -> bool {
         match self.has_type(&hash_key, target_type.clone()) {
-            (false, vec) => self.error_controller.throw_error(ValidateError::Expected(
-                hash_key.to_string(),
-                target_type,
-                vec,
-            )),
-            _ => {}
+            (false, vec) => {
+                self.error_controller.throw_error(ValidateError::Expected(
+                    hash_key.to_string(),
+                    target_type,
+                    vec,
+                ));
+                return false;
+            }
+            _ => {
+                return true;
+            }
         }
     }
 
