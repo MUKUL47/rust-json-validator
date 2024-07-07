@@ -12,25 +12,22 @@ use crate::{
 };
 
 use super::{
-    array_validator, common_validators, schema_parser::SchemaParser,
-    string_validator::validate_string,
+    array_validator, common_validators, schema_validator::SchemaValidator, string_validator::validate_string
 };
 
-pub struct Parser {
-    first_type: Type,
+pub struct CoreValidator {
     schema: SCHEMA_TYPE,
     first_type_val: Vec<String>,
     pub error_controller: ErrorController,
 }
-impl Parser {
+impl CoreValidator {
     pub fn new(first_type: Type, schema: HashMap<String, Vec<(MatchType, Type)>>) -> Self {
         let first_type_val = match first_type {
             Type::ArrayType(_) => vec!["Array".to_string()],
             Type::ObjectType(_) => vec!["Object".to_string()],
             _ => panic!("Expected Array or Object"),
         };
-        Parser {
-            first_type,
+        CoreValidator {
             schema,
             first_type_val,
             error_controller: ErrorController::new(),
@@ -52,8 +49,8 @@ impl Parser {
         original_keys: Vec<String>,
     ) {
         let mut k_clone = keys.clone();
-        let hash_key = Parser::get_hash(&k_clone);
-        let original_hash_key = Parser::get_hash(&original_keys);
+        let hash_key = CoreValidator::get_hash(&k_clone);
+        let original_hash_key = CoreValidator::get_hash(&original_keys);
         if self.is_missing_type(&hash_key, &original_hash_key) {
             return;
         }
@@ -71,13 +68,13 @@ impl Parser {
                     _ => {}
                 }
                 k_clone.push(INDEX.to_string());
-                let arr_key = Parser::get_hash(&k_clone);
+                let arr_key = CoreValidator::get_hash(&k_clone);
                 if common_validators::has_any(&self.schema, &arr_key) {
                     return;
                 }
                 let mut existing_types = HashSet::new();
                 for (idx, s) in v.into_iter().enumerate() {
-                    let j_type = SchemaParser::get_match_from_json(&s);
+                    let j_type = SchemaValidator::get_match_from_json(&s);
                     let j_key = j_type.to_string();
                     let mut new_original_keys = original_keys.clone();
                     new_original_keys.push(idx.to_string());
@@ -93,7 +90,7 @@ impl Parser {
                         }
                     }
                 }
-                self.check_missing_types(&arr_key, &existing_types);
+                self.check_missing_types(&arr_key, &existing_types, &original_hash_key);
             }
             JsonValue::Boolean(_) => {
                 self.check_has_type(&hash_key, MatchType::Boolean, &original_hash_key);
@@ -148,13 +145,13 @@ impl Parser {
                 }
                 for (k, v) in records.iter() {
                     let mut cc = k_clone.clone();
-                    let value_obj_type = SchemaParser::get_match_from_json(&v);
+                    let value_obj_type = SchemaValidator::get_match_from_json(&v);
                     cc.push(k.to_string());
                     let mut new_original_keys = original_keys.clone();
                     new_original_keys.push(k.to_string());
-                    let cc_key = Parser::get_hash(&cc);
+                    let cc_key = CoreValidator::get_hash(&cc);
                     if forbidden_keys_set.contains(&k.to_string()) {
-                        forbidden_keys.push(Parser::get_hash(&new_original_keys).to_string());
+                        forbidden_keys.push(CoreValidator::get_hash(&new_original_keys).to_string());
                         continue;
                     }
                     object_keys.remove(&k.to_string());
@@ -218,7 +215,7 @@ impl Parser {
         return t;
     }
 
-    fn check_missing_types(&mut self, key: &String, curren_types: &HashSet<String>) {
+    fn check_missing_types(&mut self, key: &String, curren_types: &HashSet<String>, original_key: &String){
         let mut missing_types: Vec<MatchType> = Vec::new();
         match self.schema.get(key) {
             Some(v) => {
@@ -231,7 +228,7 @@ impl Parser {
             None => {}
         }
         if missing_types.len() > 0 {
-            self.throw_error(ValidateError::MissingTypes(key.clone(), missing_types))
+            self.throw_error(ValidateError::MissingTypes(original_key.clone(), missing_types))
         }
     }
 

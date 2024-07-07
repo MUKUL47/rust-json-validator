@@ -22,3 +22,17 @@ pub enum ArrayOptions {
     MaxRange(usize),
     MinRange(usize),
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Options {
+    Required,
+    Example(&'static str),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum NumberOptions {
+    Required,
+    Example(&'static str),
+    MaxRange(usize),
+    MinRange(usize),
+}

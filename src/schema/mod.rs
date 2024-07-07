@@ -2,11 +2,10 @@ use std::collections::HashMap;
 
 use schema_type::{AnyType, ArrayType, BooleanType, MatchType, NullType, StringTypeOptions};
 use schema_type::{NumberType, ObjectType, Record, StringType, Type};
-use schema_type_options::{ArrayOptions, ObjectOptions, StringOptions};
+use schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions};
 
 pub mod schema_type;
 pub mod schema_type_options;
-pub mod schema_validator;
 pub type SCHEMA_TYPE = HashMap<String, Vec<(MatchType, Type)>>;
 
 pub struct Schema;
@@ -20,7 +19,11 @@ impl Schema {
     }
 
     pub fn number() -> Type {
-        Type::NumberType(NumberType)
+        Type::NumberType(NumberType { options: vec![] })
+    }
+
+    pub fn number_options(options: Vec<NumberOptions>) -> Type {
+        Type::NumberType(NumberType { options })
     }
 
     pub fn object(rr: &mut Vec<Record>) -> Type {
@@ -57,14 +60,21 @@ impl Schema {
     }
 
     pub fn boolean() -> Type {
-        Type::BooleanType(BooleanType)
+        Type::BooleanType(BooleanType { options: vec![] })
     }
 
+    pub fn boolean_options(options: Vec<Options>) -> Type {
+        Type::BooleanType(BooleanType { options })
+    }
     pub fn any() -> Type {
         Type::AnyType
     }
 
     pub fn null() -> Type {
-        Type::Null
+        Type::Null(NullType { options: vec![] })
+    }
+
+    pub fn null_options(options: Vec<Options>) -> Type {
+        Type::Null(NullType { options })
     }
 }

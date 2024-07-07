@@ -1,17 +1,17 @@
 use crate::schema::{
     schema_type::{ArrayType, MatchType, Type, TypeValidator},
-    schema_type_options::{ArrayOptions, ObjectOptions, StringOptions},
+    schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions},
     Schema, SCHEMA_TYPE,
 };
 use std::collections::HashMap;
 
-pub struct SchemaParser {
+pub struct SchemaValidator {
     pub k: Vec<Vec<String>>,
     pub hm: SCHEMA_TYPE,
 }
-impl SchemaParser {
+impl SchemaValidator {
     pub fn new() -> Self {
-        SchemaParser {
+        SchemaValidator {
             k: vec![],
             hm: HashMap::default(),
         }
@@ -24,7 +24,6 @@ impl SchemaParser {
                 Type::ObjectType(_) => vec!["Object".to_string()],
                 _ => panic!("Expected Array or Object"),
             };
-            let k = keys.get(0).unwrap();
             self.push(keys.clone(), t.clone());
         }
         self.start_parsing(&mut t.clone(), keys, t.is_nested_required());
@@ -65,6 +64,9 @@ impl SchemaParser {
     fn update_nested_required(&mut self, t: &mut Type) {
         match t {
             Type::StringTypeOptions(v) => v.options.push(StringOptions::Required),
+            Type::NumberType(v) => v.options.push(NumberOptions::Required),
+            Type::BooleanType(v) => v.options.push(Options::Required),
+            Type::Null(v) => v.options.push(Options::Required),
             Type::ArrayType(v) => v.options.push(ArrayOptions::Required),
             Type::ObjectType(v) => {
                 v.options.push(ObjectOptions::Required);
@@ -82,10 +84,10 @@ impl SchemaParser {
         match cc.get_mut(&key) {
             None => {
                 self.hm
-                    .insert(key, vec![(SchemaParser::get_type_match(&t), t)]);
+                    .insert(key, vec![(SchemaValidator::get_type_match(&t), t)]);
             }
             Some(v) => {
-                v.push((SchemaParser::get_type_match(&t), t));
+                v.push((SchemaValidator::get_type_match(&t), t));
                 self.hm.insert(key, v.to_vec());
             }
         }
@@ -99,7 +101,7 @@ impl SchemaParser {
             Type::ObjectType(_) => MatchType::Object,
             Type::StringTypeOptions(_) => MatchType::String,
             Type::None => MatchType::None,
-            Type::Null => MatchType::Null,
+            Type::Null(_) => MatchType::Null,
             Type::NumberType(_) => MatchType::Number,
         }
     }

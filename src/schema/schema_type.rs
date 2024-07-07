@@ -1,4 +1,6 @@
-use super::schema_type_options::{ArrayOptions, ObjectOptions, StringOptions};
+use super::schema_type_options::{
+    ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -9,7 +11,7 @@ pub enum Type {
     BooleanType(BooleanType),
     AnyType,
     None,
-    Null,
+    Null(NullType),
 }
 
 pub trait TypeValidator {
@@ -25,7 +27,10 @@ impl TypeValidator for Type {
             Type::StringTypeOptions(o) => o.options.contains(&StringOptions::Required),
             Type::ArrayType(o) => o.options.contains(&ArrayOptions::Required),
             Type::ObjectType(o) => o.options.contains(&ObjectOptions::Required),
-            _ => return false,
+            Type::Null(o) => o.options.contains(&Options::Required),
+            Type::BooleanType(o) => o.options.contains(&Options::Required),
+            Type::NumberType(o) => o.options.contains(&NumberOptions::Required),
+            _ => false,
         }
     }
     fn allow_unknown(&self) -> bool {
@@ -112,10 +117,14 @@ pub struct StringTypeOptions {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct NumberType;
+pub struct NumberType {
+    pub options: Vec<NumberOptions>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct NullType;
+pub struct NullType {
+    pub options: Vec<Options>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectType {
@@ -130,7 +139,9 @@ pub struct ArrayType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BooleanType;
+pub struct BooleanType {
+    pub options: Vec<Options>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnyType;
