@@ -24,11 +24,7 @@ impl SchemaParser {
                 _ => panic!("Expected Array or Object"),
             };
             let k = keys.get(0).unwrap();
-            if k == &String::from("Array") {
-                self.push(keys.clone(), Schema::array(vec![]));
-            } else {
-                self.push(keys.clone(), Schema::object(&mut vec![]));
-            }
+            self.push(keys.clone(), t.clone());
         }
         match t {
             Type::ArrayTypeOptions(v) => {

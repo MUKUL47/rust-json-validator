@@ -45,7 +45,11 @@ impl Parser {
         }
         match json {
             JsonValue::Array(v) => {
-                self.check_has_type(&hash_key, MatchType::Array);
+                let mut unknown_allowed: bool = false;
+                match self.check_has_type(&hash_key, MatchType::Array) {
+                    Some(t) => unknown_allowed = t.allow_unknown(),
+                    _ => {}
+                }
                 k_clone.push(INDEX.to_string());
                 let arr_key = Parser::get_hash(&k_clone);
                 if self.has_any(&arr_key) {
@@ -53,9 +57,17 @@ impl Parser {
                 }
                 let mut existing_types = HashSet::new();
                 for s in v.into_iter() {
-                    let j_key = SchemaParser::get_match_from_json(&s).to_string();
+                    let j_type = SchemaParser::get_match_from_json(&s);
+                    let j_key = j_type.to_string();
                     existing_types.insert(j_key);
-                    self.continue_validate(s, k_clone.clone());
+                    if !unknown_allowed {
+                        self.continue_validate(s, k_clone.clone());
+                    } else {
+                        match self.get_type(&arr_key, j_type) {
+                            Some(_) => self.continue_validate(s, k_clone.clone()),
+                            _ => {},
+                        }
+                    }
                 }
                 self.check_missing_types(&arr_key, &existing_types);
             }
@@ -63,11 +75,11 @@ impl Parser {
                 self.check_has_type(&hash_key, MatchType::Boolean);
             }
             JsonValue::String(_) | JsonValue::Short(_) => {
-                if !self.check_has_type(&hash_key, MatchType::String) {
-                    return;
-                }
-                match validate_string(&self.schema, &json, &hash_key) {
-                    Some(e) => self.throw_error(e),
+                match self.check_has_type(&hash_key, MatchType::String) {
+                    Some(_) => match validate_string(&self.schema, &json, &hash_key) {
+                        Some(e) => self.throw_error(e),
+                        _ => {}
+                    },
                     _ => {}
                 }
             }
@@ -97,37 +109,45 @@ impl Parser {
         return keys.join(".");
     }
 
-    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) -> bool {
-        match self.has_type(&hash_key, target_type.clone()) {
-            (false, vec) => {
-                self.error_controller.throw_error(ValidateError::Expected(
-                    hash_key.to_string(),
-                    target_type,
-                    vec,
-                ));
-                return false;
-            }
-            _ => {
-                return true;
-            }
-        }
-    }
-
-    fn has_type(&mut self, key: &String, target_type: MatchType) -> (bool, Vec<MatchType>) {
+    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) -> Option<Type> {
         let mut match_types: Vec<MatchType> = vec![];
-        let mut found: bool = false;
-        match self.schema.get(key) {
+        let mut t: Option<Type> = None;
+        match self.schema.get(hash_key) {
             None => {}
             Some(v) => {
                 for i in v.into_iter() {
                     if target_type == i.0 {
-                        found = true;
+                        t = Some(i.1.clone());
                     }
                     match_types.push(i.0.clone());
                 }
             }
-        };
-        return (found, match_types);
+        }
+        match t {
+            None => {
+                self.error_controller.throw_error(ValidateError::Expected(
+                    hash_key.to_string(),
+                    target_type,
+                    match_types,
+                ));
+            }
+            _ => {}
+        }
+        return t;
+    }
+
+    fn get_type(&mut self, hash_key: &String, target_type: MatchType) -> Option<Type> {
+        match self.schema.get(hash_key) {
+            None => {}
+            Some(v) => {
+                for i in v.into_iter() {
+                    if target_type == i.0 {
+                        return Some(i.1.clone());
+                    }
+                }
+            }
+        }
+        return None;
     }
 
     fn has_any(&mut self, key: &String) -> bool {

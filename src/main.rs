@@ -13,15 +13,19 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[2]"#).unwrap();
-    let s = Schema::array(
+    let a = parse(r#"["123",["123"],["123"],["123",2]]"#).unwrap();
+    let s = Schema::array_options(
         vec![
             Schema::string_options(vec![StringOptions::Required]),
             Schema::array_options(
-                vec![],
-                vec![ArrayOptions::AllowUnknown],
+                vec![Schema::string_options(vec![
+                    StringOptions::Required,
+                    StringOptions::ShouldMatch("123"),
+                ])],
+                vec![ArrayOptions::AllowUnknown, ArrayOptions::Required],
             ),
-        ]
+        ],
+        vec![ArrayOptions::AllowUnknown],
     );
 
     let mut pp = SchemaParser::new();
