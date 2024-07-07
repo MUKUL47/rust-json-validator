@@ -13,15 +13,21 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[[2,2,"", 2,2],[2],[""],3,3,3,3]"#).unwrap();
+    let a = parse(r#"[{"names" : 2}]"#).unwrap();
     let s = Schema::array_options(
-        vec![Schema::string(), Schema::array(vec![Schema::number()])],
-        vec![ArrayOptions::MinRange(10), ArrayOptions::NestedRequired, ArrayOptions::AllowUnknown],
+        vec![Schema::object(&mut vec![
+            Record::V(
+                "names",
+                Schema::string_options(vec![StringOptions::ShouldMatch("222")]),
+            ),
+            Record::V("nameas", Schema::array(vec![])),
+        ])],
+        vec![ArrayOptions::MinRange(10), ArrayOptions::NestedRequired],
     );
 
     let mut pp = SchemaParser::new();
     pp.parse(s.clone(), vec![]);
-    println!("{:?}", s);
+    println!("{:?}", pp.hm);
     let mut parse = Parser::new(s, pp.hm);
     parse.start(a);
     println!("{:?}", parse.error_controller.errors) //.len());

@@ -13,6 +13,7 @@ pub fn validate_string(
     schema: &SCHEMA_TYPE,
     value: &json::JsonValue,
     key: &String,
+    original_key: &String,
 ) -> Option<ValidateError> {
     if let Some(v) = schema.get(key) {
         for i in v.iter() {
@@ -31,7 +32,7 @@ pub fn validate_string(
 
                 if available_strs.len() > 0 && !available_strs.contains(&value.to_string()) {
                     return Some(ValidateError::StringMisMatch(
-                        key.to_string(),
+                        original_key.to_string(),
                         value.to_string(),
                         available_strs.into_iter().collect(),
                     ));

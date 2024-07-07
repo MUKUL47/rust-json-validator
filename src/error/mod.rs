@@ -4,10 +4,11 @@ use crate::schema::schema_type::MatchType;
 pub enum ValidateError {
     Expected(String, MatchType, Vec<MatchType>),
     MissingTypes(String, Vec<MatchType>),
-    UnexpectedTypes(String),
+    UnexpectedTypeFound(String),
     StringMisMatch(String, String, Vec<String>),
     ArrayMaxRange(String, usize, usize),
     ArrayMinRange(String, usize, usize),
+    ObjectMissingKeys(String, Vec<String>)
 }
 
 pub struct ErrorController {

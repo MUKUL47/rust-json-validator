@@ -6,6 +6,7 @@ pub enum StringOptions {
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum ObjectOptions {
+    Required,
     NestedRequired,
     AllowUnknown,
     RequiredFields(Vec<&'static str>),

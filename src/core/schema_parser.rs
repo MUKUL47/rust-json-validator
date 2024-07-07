@@ -1,6 +1,6 @@
 use crate::schema::{
     schema_type::{ArrayType, MatchType, Type, TypeValidator},
-    schema_type_options::{ArrayOptions, StringOptions},
+    schema_type_options::{ArrayOptions, ObjectOptions, StringOptions},
     Schema, SCHEMA_TYPE,
 };
 use std::collections::HashMap;
@@ -40,17 +40,22 @@ impl SchemaParser {
                         self.update_nested_required(c.1);
                     }
                     self.push(vec_clone.clone(), c.1.clone());
-                    let mut final_c = c.1;//.clone();
+                    let mut final_c = c.1; //.clone();
                     let nested = final_c.is_nested_required();
                     self.start_parsing(&mut final_c, vec_clone, nested_required || nested);
                 }
             }
             Type::ObjectType(v) => {
-                for c in v.records.clone().into_iter().enumerate() {
+                for c in v.records.clone().iter_mut().enumerate() {
                     let mut vec_clone = keys.clone();
-                    vec_clone.push(c.1 .0);
+                    vec_clone.push(c.1 .0.clone());
+                    if nested_required {
+                        self.update_nested_required(c.1 .1);
+                    }
                     self.push(vec_clone.clone(), c.1 .1.clone());
-                    SchemaParser::parse(self, c.1 .1, vec_clone);
+                    let mut final_c = c.1 .1; //.clone();
+                    let nested = final_c.is_nested_required();
+                    self.start_parsing(&mut final_c, vec_clone, nested_required || nested);
                 }
             }
             _ => {}
@@ -61,6 +66,11 @@ impl SchemaParser {
         match t {
             Type::StringTypeOptions(v) => v.options.push(StringOptions::Required),
             Type::ArrayType(v) => v.options.push(ArrayOptions::Required),
+            Type::ObjectType(v) => {
+                for r in v.records.iter_mut() {
+                    self.update_nested_required(r.1);
+                }
+            }
             _ => {}
         }
     }
@@ -82,7 +92,7 @@ impl SchemaParser {
 
     fn get_type_match(t: &Type) -> MatchType {
         match t {
-            Type::AnyType(_) => MatchType::Any,
+            Type::AnyType => MatchType::Any,
             Type::ArrayType(_) => MatchType::Array,
             Type::BooleanType(_) => MatchType::Boolean,
             Type::ObjectType(_) => MatchType::Object,

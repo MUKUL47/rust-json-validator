@@ -7,7 +7,7 @@ pub enum Type {
     ObjectType(ObjectType),
     ArrayType(ArrayType),
     BooleanType(BooleanType),
-    AnyType(AnyType),
+    AnyType,
     None,
     Null(NullType),
 }
@@ -29,6 +29,7 @@ impl TypeValidator for Type {
     fn allow_unknown(&self) -> bool {
         match self {
             Type::ArrayType(o) => o.options.contains(&ArrayOptions::AllowUnknown),
+            Type::ObjectType(o) => o.options.contains(&ObjectOptions::AllowUnknown),
             _ => return false,
         }
     }
@@ -101,6 +102,7 @@ pub struct NullType;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectType {
     pub records: std::collections::HashMap<String, Type>,
+    pub options: Vec<ObjectOptions>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

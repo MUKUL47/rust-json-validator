@@ -53,7 +53,7 @@ impl Parser {
         let mut k_clone = keys.clone();
         let hash_key = Parser::get_hash(&k_clone);
         let original_hash_key = Parser::get_hash(&original_keys);
-        if self.is_missing_type(&hash_key) {
+        if self.is_missing_type(&hash_key, &original_hash_key) {
             return;
         }
         match json {
@@ -99,10 +99,12 @@ impl Parser {
             }
             JsonValue::String(_) | JsonValue::Short(_) => {
                 match self.check_has_type(&hash_key, MatchType::String, &original_hash_key) {
-                    Some(_) => match validate_string(&self.schema, &json, &hash_key) {
-                        Some(e) => self.throw_error(e),
-                        _ => {}
-                    },
+                    Some(_) => {
+                        match validate_string(&self.schema, &json, &hash_key, &original_hash_key) {
+                            Some(e) => self.throw_error(e),
+                            _ => {}
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -113,18 +115,48 @@ impl Parser {
                 self.check_has_type(&hash_key, MatchType::Number, &original_hash_key);
             }
             JsonValue::Object(records) => {
-                self.check_has_type(&hash_key, MatchType::Object, &original_hash_key);
+                let mut unknown_allowed = false;
+                let mut object_keys: HashSet<String> = HashSet::new();
+                match common_validators::get_type(&self.schema, &hash_key, MatchType::Object) {
+                    Some(v) => {
+                        unknown_allowed = v.allow_unknown();
+                        match v {
+                            Type::ObjectType(r) => {
+                                for record in r.records.iter() {
+                                    if record.1.is_required() {
+                                        object_keys.insert(record.0.to_string());
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
                 for (k, v) in records.iter() {
                     let mut cc = k_clone.clone();
+                    let value_obj_type = SchemaParser::get_match_from_json(&v);
                     cc.push(k.to_string());
+                    let mut new_original_keys = original_keys.clone();
+                    new_original_keys.push(k.to_string());
                     let cc_key = Parser::get_hash(&cc);
-                    if self.is_missing_type(&cc_key)
-                        || common_validators::has_any(&self.schema, &cc_key)
-                    {
-                        return;
+                    object_keys.remove(&k.to_string());
+                    if !unknown_allowed {
+                        self.continue_validate(v.clone(), cc.clone(), new_original_keys);
+                    } else {
+                        match common_validators::get_type(&self.schema, &cc_key, value_obj_type) {
+                            Some(next_type) if next_type != Type::AnyType => {
+                                self.continue_validate(v.clone(), cc.clone(), new_original_keys)
+                            }
+                            _ => {}
+                        }
                     }
-                    self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v), &original_hash_key);
-                    self.continue_validate(v.clone(), cc.clone(), original_keys.clone());
+                }
+                if object_keys.len() > 0 {
+                    self.throw_error(ValidateError::ObjectMissingKeys(
+                        original_hash_key.clone(),
+                        object_keys.into_iter().collect(),
+                    ))
                 }
             }
         }
@@ -134,7 +166,12 @@ impl Parser {
         return keys.join(".");
     }
 
-    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType, original_hash_key: &String) -> Option<Type> {
+    fn check_has_type(
+        &mut self,
+        hash_key: &String,
+        target_type: MatchType,
+        original_hash_key: &String,
+    ) -> Option<Type> {
         let mut match_types: Vec<MatchType> = vec![];
         let mut t: Option<Type> = None;
         match self.schema.get(hash_key) {
@@ -178,15 +215,15 @@ impl Parser {
         }
     }
 
-    fn is_missing_type(&mut self, key: &String) -> bool {
+    fn is_missing_type(&mut self, key: &String, original_key: &String) -> bool {
         match self.schema.get(key) {
             None => {
-                self.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
+                self.throw_error(ValidateError::UnexpectedTypeFound(original_key.to_string()));
                 return true;
             }
             Some(v) => {
                 if v.len() == 0 {
-                    self.throw_error(ValidateError::UnexpectedTypes(key.to_string()));
+                    self.throw_error(ValidateError::UnexpectedTypeFound(original_key.to_string()));
                     return true;
                 }
                 return false;
