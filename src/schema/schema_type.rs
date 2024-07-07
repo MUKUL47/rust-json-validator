@@ -5,7 +5,7 @@ pub enum Type {
     StringTypeOptions(StringTypeOptions),
     NumberType(NumberType),
     ObjectType(ObjectType),
-    ArrayTypeOptions(ArrayTypeOptions),
+    ArrayType(ArrayType),
     BooleanType(BooleanType),
     AnyType(AnyType),
     None,
@@ -22,20 +22,20 @@ impl TypeValidator for Type {
     fn is_required(&self) -> bool {
         match self {
             Type::StringTypeOptions(o) => o.options.contains(&StringOptions::Required),
-            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::Required),
+            Type::ArrayType(o) => o.options.contains(&ArrayOptions::Required),
             _ => return false,
         }
     }
     fn allow_unknown(&self) -> bool {
         match self {
-            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::AllowUnknown),
+            Type::ArrayType(o) => o.options.contains(&ArrayOptions::AllowUnknown),
             _ => return false,
         }
     }
 
     fn is_nested_required(&self) -> bool {
         match self {
-            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::NestedRequired),
+            Type::ArrayType(o) => o.options.contains(&ArrayOptions::NestedRequired),
             _ => return false,
         }
     }
@@ -106,13 +106,9 @@ pub struct ObjectType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArrayType {
     pub children: Vec<Type>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ArrayTypeOptions {
-    pub children: Vec<Type>,
     pub options: Vec<ArrayOptions>,
 }
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct BooleanType;
 

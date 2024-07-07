@@ -10,7 +10,10 @@ use crate::{
     },
 };
 
-use super::{common_validators, schema_parser::SchemaParser, string_validator::validate_string};
+use super::{
+    array_validator, common_validators, schema_parser::SchemaParser,
+    string_validator::validate_string,
+};
 
 pub struct Parser {
     first_type: Type,
@@ -21,7 +24,7 @@ pub struct Parser {
 impl Parser {
     pub fn new(first_type: Type, schema: HashMap<String, Vec<(MatchType, Type)>>) -> Self {
         let first_type_val = match first_type {
-            Type::ArrayTypeOptions(_) => vec!["Array".to_string()],
+            Type::ArrayType(_) => vec!["Array".to_string()],
             Type::ObjectType(_) => vec!["Object".to_string()],
             _ => panic!("Expected Array or Object"),
         };
@@ -47,7 +50,13 @@ impl Parser {
             JsonValue::Array(v) => {
                 let mut unknown_allowed: bool = false;
                 match self.check_has_type(&hash_key, MatchType::Array) {
-                    Some(t) => unknown_allowed = t.allow_unknown(),
+                    Some(t) => {
+                        unknown_allowed = t.allow_unknown();
+                        match array_validator::validate_array(&t, &v, &hash_key) {
+                            Some(e) => self.throw_error(e),
+                            _ => {}
+                        }
+                    }
                     _ => {}
                 }
                 k_clone.push(INDEX.to_string());

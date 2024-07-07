@@ -6,26 +6,19 @@ use std::{
 mod schema;
 use json::{number::Number, object::Object, parse};
 use schema::{
-    schema_type::{ArrayType, ArrayTypeOptions, Record},
+    schema_type::{ArrayType, Record},
     schema_type_options::{ArrayOptions, ObjectOptions, StringOptions},
     Schema,
 };
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[1,2]"#).unwrap();
+    let a = parse(r#"["123","123","123","123","123",2]"#).unwrap();
     let s = Schema::array_options(
         vec![
             Schema::string(),
-            Schema::array_options(
-                vec![
-                    Schema::string(),
-                    Schema::array(vec![Schema::string_options(vec![])]),
-                ],
-                vec![ ArrayOptions::Required],
-            )
         ],
-        vec![],
+        vec![ArrayOptions::MinRange(10)],
     );
 
     let mut pp = SchemaParser::new();

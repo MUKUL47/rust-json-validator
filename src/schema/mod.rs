@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use schema_type::{AnyType, ArrayType, ArrayTypeOptions, BooleanType, MatchType, NullType, StringTypeOptions};
+use schema_type::{AnyType, ArrayType, BooleanType, MatchType, NullType, StringTypeOptions};
 use schema_type::{NumberType, ObjectType, Record, StringType, Type};
 use schema_type_options::{ObjectOptions, ArrayOptions, StringOptions};
 
@@ -35,10 +35,10 @@ impl Schema {
         Type::ObjectType(ObjectType { records })
     }
     pub fn array(children: Vec<Type>) -> Type {
-        Type::ArrayTypeOptions(ArrayTypeOptions { children, options: vec![] })
+        Type::ArrayType(ArrayType { children, options: vec![] })
     }
     pub fn array_options(children: Vec<Type>, options: Vec<ArrayOptions>) -> Type {
-        Type::ArrayTypeOptions(ArrayTypeOptions { children, options })
+        Type::ArrayType(ArrayType { children, options })
     }
 
     pub fn boolean() -> Type {

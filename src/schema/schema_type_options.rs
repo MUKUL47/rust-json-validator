@@ -12,9 +12,11 @@ pub enum ObjectOptions {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ArrayOptions{
+pub enum ArrayOptions {
     Required,
     Example(&'static str),
     NestedRequired,
     AllowUnknown,
+    MaxRange(usize),
+    MinRange(usize),
 }

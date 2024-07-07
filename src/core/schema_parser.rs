@@ -1,13 +1,13 @@
 use crate::schema::{
-    schema_type::{ArrayTypeOptions, MatchType, Type, TypeValidator},
+    schema_type::{ArrayType, MatchType, Type, TypeValidator},
     schema_type_options::{ArrayOptions, StringOptions},
-    Schema,
+    Schema, SCHEMA_TYPE,
 };
 use std::collections::HashMap;
 
 pub struct SchemaParser {
     pub k: Vec<Vec<String>>,
-    pub hm: HashMap<String, Vec<(MatchType, Type)>>,
+    pub hm: SCHEMA_TYPE,
 }
 impl SchemaParser {
     pub fn new() -> Self {
@@ -20,7 +20,7 @@ impl SchemaParser {
         let mut keys: Vec<String> = kk.clone();
         if keys.len() == 0 {
             keys = match t {
-                Type::ArrayTypeOptions(_) => vec!["Array".to_string()],
+                Type::ArrayType(_) => vec!["Array".to_string()],
                 Type::ObjectType(_) => vec!["Object".to_string()],
                 _ => panic!("Expected Array or Object"),
             };
@@ -32,7 +32,7 @@ impl SchemaParser {
 
     fn start_parsing(&mut self, t: &mut Type, keys: Vec<String>, nested_required: bool) {
         match t {
-            Type::ArrayTypeOptions(v) => {
+            Type::ArrayType(v) => {
                 for c in v.children.iter_mut().enumerate() {
                     let mut vec_clone = keys.clone();
                     vec_clone.push("[INDEX]".to_string());
@@ -60,7 +60,7 @@ impl SchemaParser {
     fn update_nested_required(&mut self, t: &mut Type) {
         match t {
             Type::StringTypeOptions(v) => v.options.push(StringOptions::Required),
-            Type::ArrayTypeOptions(v) => v.options.push(ArrayOptions::Required),
+            Type::ArrayType(v) => v.options.push(ArrayOptions::Required),
             _ => {}
         }
     }
@@ -83,7 +83,7 @@ impl SchemaParser {
     fn get_type_match(t: &Type) -> MatchType {
         match t {
             Type::AnyType(_) => MatchType::Any,
-            Type::ArrayTypeOptions(_) => MatchType::Array,
+            Type::ArrayType(_) => MatchType::Array,
             Type::BooleanType(_) => MatchType::Boolean,
             Type::ObjectType(_) => MatchType::Object,
             Type::StringTypeOptions(_) => MatchType::String,
