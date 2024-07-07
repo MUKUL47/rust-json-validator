@@ -13,24 +13,24 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"["123",["123"],["123"],["123",2]]"#).unwrap();
+    let a = parse(r#"[[]]"#).unwrap();
     let s = Schema::array_options(
         vec![
-            Schema::string_options(vec![StringOptions::Required]),
+            Schema::string(),
             Schema::array_options(
-                vec![Schema::string_options(vec![
-                    StringOptions::Required,
-                    StringOptions::ShouldMatch("123"),
-                ])],
-                vec![ArrayOptions::AllowUnknown, ArrayOptions::Required],
-            ),
+                vec![
+                    Schema::string(),
+                    Schema::array(vec![Schema::string_options(vec![])]),
+                ],
+                vec![ArrayOptions::NestedRequired, ArrayOptions::Required],
+            )
         ],
-        vec![ArrayOptions::AllowUnknown],
+        vec![],
     );
 
     let mut pp = SchemaParser::new();
     pp.parse(s.clone(), vec![]);
-    println!("{:?}", pp.hm);
+    println!("{:?}", s);
     let mut parse = Parser::new(s, pp.hm);
     parse.start(a);
     println!("{:?}", parse.error_controller.errors) //.len());

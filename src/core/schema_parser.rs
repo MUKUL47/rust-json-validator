@@ -1,5 +1,6 @@
 use crate::schema::{
-    schema_type::{ArrayTypeOptions, MatchType, Type},
+    schema_type::{ArrayTypeOptions, MatchType, Type, TypeValidator},
+    schema_type_options::{ArrayOptions, StringOptions},
     Schema,
 };
 use std::collections::HashMap;
@@ -26,23 +27,40 @@ impl SchemaParser {
             let k = keys.get(0).unwrap();
             self.push(keys.clone(), t.clone());
         }
+        self.start_parsing(&mut t.clone(), keys, t.is_nested_required());
+    }
+
+    fn start_parsing(&mut self, t: &mut Type, keys: Vec<String>, nested_required: bool) {
         match t {
             Type::ArrayTypeOptions(v) => {
-                for c in v.children.into_iter().enumerate() {
+                for c in v.children.iter_mut().enumerate() {
                     let mut vec_clone = keys.clone();
                     vec_clone.push("[INDEX]".to_string());
+                    if nested_required {
+                        self.update_nested_required(c.1);
+                    }
                     self.push(vec_clone.clone(), c.1.clone());
-                    SchemaParser::parse(self, c.1, vec_clone);
+                    let mut final_c = c.1;//.clone();
+                    let nested = final_c.is_nested_required();
+                    self.start_parsing(&mut final_c, vec_clone, nested_required || nested);
                 }
             }
             Type::ObjectType(v) => {
-                for c in v.records.into_iter().enumerate() {
+                for c in v.records.clone().into_iter().enumerate() {
                     let mut vec_clone = keys.clone();
                     vec_clone.push(c.1 .0);
                     self.push(vec_clone.clone(), c.1 .1.clone());
                     SchemaParser::parse(self, c.1 .1, vec_clone);
                 }
             }
+            _ => {}
+        }
+    }
+
+    fn update_nested_required(&mut self, t: &mut Type) {
+        match t {
+            Type::StringTypeOptions(v) => v.options.push(StringOptions::Required),
+            Type::ArrayTypeOptions(v) => v.options.push(ArrayOptions::Required),
             _ => {}
         }
     }

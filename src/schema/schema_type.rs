@@ -1,4 +1,4 @@
-use super::schema_type_options::{ObjectOptions, ArrayOptions, StringOptions};
+use super::schema_type_options::{ArrayOptions, ObjectOptions, StringOptions};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -15,6 +15,7 @@ pub enum Type {
 pub trait TypeValidator {
     fn is_required(&self) -> bool;
     fn allow_unknown(&self) -> bool;
+    fn is_nested_required(&self) -> bool;
 }
 
 impl TypeValidator for Type {
@@ -28,6 +29,13 @@ impl TypeValidator for Type {
     fn allow_unknown(&self) -> bool {
         match self {
             Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::AllowUnknown),
+            _ => return false,
+        }
+    }
+
+    fn is_nested_required(&self) -> bool {
+        match self {
+            Type::ArrayTypeOptions(o) => o.options.contains(&ArrayOptions::NestedRequired),
             _ => return false,
         }
     }
