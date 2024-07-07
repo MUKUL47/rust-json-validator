@@ -9,13 +9,14 @@ pub enum Type {
     BooleanType(BooleanType),
     AnyType,
     None,
-    Null(NullType),
+    Null,
 }
 
 pub trait TypeValidator {
     fn is_required(&self) -> bool;
     fn allow_unknown(&self) -> bool;
     fn is_nested_required(&self) -> bool;
+    fn is_forbidden_objectkey(&self, k: &String) -> bool;
 }
 
 impl TypeValidator for Type {
@@ -23,6 +24,7 @@ impl TypeValidator for Type {
         match self {
             Type::StringTypeOptions(o) => o.options.contains(&StringOptions::Required),
             Type::ArrayType(o) => o.options.contains(&ArrayOptions::Required),
+            Type::ObjectType(o) => o.options.contains(&ObjectOptions::Required),
             _ => return false,
         }
     }
@@ -37,6 +39,22 @@ impl TypeValidator for Type {
     fn is_nested_required(&self) -> bool {
         match self {
             Type::ArrayType(o) => o.options.contains(&ArrayOptions::NestedRequired),
+            _ => return false,
+        }
+    }
+    fn is_forbidden_objectkey(&self, k: &String) -> bool {
+        match self {
+            Type::ObjectType(o) => {
+                for i in o.options.iter() {
+                    match i {
+                        ObjectOptions::Forbidden(keys) => {
+                            return keys.contains(&k.as_str());
+                        }
+                        _ => {}
+                    }
+                }
+                return false;
+            }
             _ => return false,
         }
     }

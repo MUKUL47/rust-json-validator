@@ -6,6 +6,7 @@ use crate::{
     error::{ErrorController, ValidateError},
     schema::{
         schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type, TypeValidator},
+        schema_type_options::ObjectOptions,
         SCHEMA_TYPE,
     },
 };
@@ -117,6 +118,8 @@ impl Parser {
             JsonValue::Object(records) => {
                 let mut unknown_allowed = false;
                 let mut object_keys: HashSet<String> = HashSet::new();
+                let mut forbidden_keys: Vec<String> = vec![];
+                let mut forbidden_keys_set: HashSet<String> = HashSet::new();
                 match common_validators::get_type(&self.schema, &hash_key, MatchType::Object) {
                     Some(v) => {
                         unknown_allowed = v.allow_unknown();
@@ -125,6 +128,16 @@ impl Parser {
                                 for record in r.records.iter() {
                                     if record.1.is_required() {
                                         object_keys.insert(record.0.to_string());
+                                    }
+                                }
+                                for o in r.options.into_iter() {
+                                    match o {
+                                        ObjectOptions::Forbidden(k) => {
+                                            for s in k.into_iter() {
+                                                forbidden_keys_set.insert(s.to_string());
+                                            }
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -140,6 +153,10 @@ impl Parser {
                     let mut new_original_keys = original_keys.clone();
                     new_original_keys.push(k.to_string());
                     let cc_key = Parser::get_hash(&cc);
+                    if forbidden_keys_set.contains(&k.to_string()) {
+                        forbidden_keys.push(Parser::get_hash(&new_original_keys).to_string());
+                        continue;
+                    }
                     object_keys.remove(&k.to_string());
                     if !unknown_allowed {
                         self.continue_validate(v.clone(), cc.clone(), new_original_keys);
@@ -151,6 +168,9 @@ impl Parser {
                             _ => {}
                         }
                     }
+                }
+                if forbidden_keys.len() > 0 {
+                    self.throw_error(ValidateError::ForbiddenObjectKey(forbidden_keys.clone()));
                 }
                 if object_keys.len() > 0 {
                     self.throw_error(ValidateError::ObjectMissingKeys(

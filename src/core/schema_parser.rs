@@ -67,6 +67,7 @@ impl SchemaParser {
             Type::StringTypeOptions(v) => v.options.push(StringOptions::Required),
             Type::ArrayType(v) => v.options.push(ArrayOptions::Required),
             Type::ObjectType(v) => {
+                v.options.push(ObjectOptions::Required);
                 for r in v.records.iter_mut() {
                     self.update_nested_required(r.1);
                 }
@@ -98,7 +99,7 @@ impl SchemaParser {
             Type::ObjectType(_) => MatchType::Object,
             Type::StringTypeOptions(_) => MatchType::String,
             Type::None => MatchType::None,
-            Type::Null(_) => MatchType::Null,
+            Type::Null => MatchType::Null,
             Type::NumberType(_) => MatchType::Number,
         }
     }

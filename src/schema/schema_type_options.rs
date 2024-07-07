@@ -8,6 +8,7 @@ pub enum StringOptions {
 pub enum ObjectOptions {
     Required,
     NestedRequired,
+    Forbidden(Vec<&'static str>),
     AllowUnknown,
     RequiredFields(Vec<&'static str>),
 }

@@ -65,6 +65,6 @@ impl Schema {
     }
 
     pub fn null() -> Type {
-        Type::Null(NullType)
+        Type::Null
     }
 }

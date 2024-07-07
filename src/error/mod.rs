@@ -8,7 +8,8 @@ pub enum ValidateError {
     StringMisMatch(String, String, Vec<String>),
     ArrayMaxRange(String, usize, usize),
     ArrayMinRange(String, usize, usize),
-    ObjectMissingKeys(String, Vec<String>)
+    ObjectMissingKeys(String, Vec<String>),
+    ForbiddenObjectKey(Vec<String>)
 }
 
 pub struct ErrorController {
