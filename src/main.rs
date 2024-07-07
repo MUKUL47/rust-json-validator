@@ -13,12 +13,10 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"["123","123","123","123","123",2]"#).unwrap();
+    let a = parse(r#"[[2,2,"", 2,2],[2],[""],3,3,3,3]"#).unwrap();
     let s = Schema::array_options(
-        vec![
-            Schema::string(),
-        ],
-        vec![ArrayOptions::MinRange(10)],
+        vec![Schema::string(), Schema::array(vec![Schema::number()])],
+        vec![ArrayOptions::MinRange(10), ArrayOptions::NestedRequired, ArrayOptions::AllowUnknown],
     );
 
     let mut pp = SchemaParser::new();

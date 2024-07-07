@@ -37,22 +37,32 @@ impl Parser {
     }
 
     pub fn start(&mut self, json: json::JsonValue) {
-        self.continue_validate(json, self.first_type_val.clone());
+        self.continue_validate(
+            json,
+            self.first_type_val.clone(),
+            self.first_type_val.clone(),
+        );
     }
 
-    fn continue_validate(&mut self, json: json::JsonValue, keys: Vec<String>) {
+    fn continue_validate(
+        &mut self,
+        json: json::JsonValue,
+        keys: Vec<String>,
+        original_keys: Vec<String>,
+    ) {
         let mut k_clone = keys.clone();
         let hash_key = Parser::get_hash(&k_clone);
+        let original_hash_key = Parser::get_hash(&original_keys);
         if self.is_missing_type(&hash_key) {
             return;
         }
         match json {
             JsonValue::Array(v) => {
                 let mut unknown_allowed: bool = false;
-                match self.check_has_type(&hash_key, MatchType::Array) {
+                match self.check_has_type(&hash_key, MatchType::Array, &original_hash_key) {
                     Some(t) => {
                         unknown_allowed = t.allow_unknown();
-                        match array_validator::validate_array(&t, &v, &hash_key) {
+                        match array_validator::validate_array(&t, &v, &original_hash_key) {
                             Some(e) => self.throw_error(e),
                             _ => {}
                         }
@@ -65,15 +75,19 @@ impl Parser {
                     return;
                 }
                 let mut existing_types = HashSet::new();
-                for s in v.into_iter() {
+                for (idx, s) in v.into_iter().enumerate() {
                     let j_type = SchemaParser::get_match_from_json(&s);
                     let j_key = j_type.to_string();
+                    let mut new_original_keys = original_keys.clone();
+                    new_original_keys.push(idx.to_string());
                     existing_types.insert(j_key);
                     if !unknown_allowed {
-                        self.continue_validate(s, k_clone.clone());
+                        self.continue_validate(s, k_clone.clone(), new_original_keys);
                     } else {
                         match common_validators::get_type(&self.schema, &arr_key, j_type) {
-                            Some(_) => self.continue_validate(s, k_clone.clone()),
+                            Some(_) => {
+                                self.continue_validate(s, k_clone.clone(), new_original_keys)
+                            }
                             _ => {}
                         }
                     }
@@ -81,10 +95,10 @@ impl Parser {
                 self.check_missing_types(&arr_key, &existing_types);
             }
             JsonValue::Boolean(_) => {
-                self.check_has_type(&hash_key, MatchType::Boolean);
+                self.check_has_type(&hash_key, MatchType::Boolean, &original_hash_key);
             }
             JsonValue::String(_) | JsonValue::Short(_) => {
-                match self.check_has_type(&hash_key, MatchType::String) {
+                match self.check_has_type(&hash_key, MatchType::String, &original_hash_key) {
                     Some(_) => match validate_string(&self.schema, &json, &hash_key) {
                         Some(e) => self.throw_error(e),
                         _ => {}
@@ -93,13 +107,13 @@ impl Parser {
                 }
             }
             JsonValue::Null => {
-                self.check_has_type(&hash_key, MatchType::Null);
+                self.check_has_type(&hash_key, MatchType::Null, &original_hash_key);
             }
             JsonValue::Number(_) => {
-                self.check_has_type(&hash_key, MatchType::Number);
+                self.check_has_type(&hash_key, MatchType::Number, &original_hash_key);
             }
             JsonValue::Object(records) => {
-                self.check_has_type(&hash_key, MatchType::Object);
+                self.check_has_type(&hash_key, MatchType::Object, &original_hash_key);
                 for (k, v) in records.iter() {
                     let mut cc = k_clone.clone();
                     cc.push(k.to_string());
@@ -109,8 +123,8 @@ impl Parser {
                     {
                         return;
                     }
-                    self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v));
-                    self.continue_validate(v.clone(), cc.clone());
+                    self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v), &original_hash_key);
+                    self.continue_validate(v.clone(), cc.clone(), original_keys.clone());
                 }
             }
         }
@@ -120,7 +134,7 @@ impl Parser {
         return keys.join(".");
     }
 
-    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType) -> Option<Type> {
+    fn check_has_type(&mut self, hash_key: &String, target_type: MatchType, original_hash_key: &String) -> Option<Type> {
         let mut match_types: Vec<MatchType> = vec![];
         let mut t: Option<Type> = None;
         match self.schema.get(hash_key) {
@@ -137,7 +151,7 @@ impl Parser {
         match t {
             None => {
                 self.error_controller.throw_error(ValidateError::Expected(
-                    hash_key.to_string(),
+                    original_hash_key.to_string(),
                     target_type,
                     match_types,
                 ));
