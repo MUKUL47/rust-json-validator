@@ -1,6 +1,6 @@
 use core::{core_validator::CoreValidator, schema_validator::SchemaValidator};
 mod schema;
-use json::{parse};
+use json::parse;
 use schema::{
     schema_type_options::{ArrayOptions, Options},
     Schema,
@@ -8,7 +8,7 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[null,[2],[],[]]"#).unwrap();
+    let a = parse(r#"[[2],[],[]]"#).unwrap();
     let s = Schema::array_options(
         vec![
             Schema::null_options(vec![Options::Required]),
@@ -22,5 +22,5 @@ fn main() {
     println!("{:?}", pp.hm);
     let mut parse = CoreValidator::new(s, pp.hm);
     parse.start(a);
-    println!("{:?}", parse.error_controller.errors) //.len());
+    println!("{:?}", parse.error_controller.get_errors_messages()) //.len());
 }
