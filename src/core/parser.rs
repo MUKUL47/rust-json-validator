@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use super::{schema_parser::SchemaParser, string_validator::validate_string};
+use super::{common_validators, schema_parser::SchemaParser, string_validator::validate_string};
 
 pub struct Parser {
     first_type: Type,
@@ -52,7 +52,7 @@ impl Parser {
                 }
                 k_clone.push(INDEX.to_string());
                 let arr_key = Parser::get_hash(&k_clone);
-                if self.has_any(&arr_key) {
+                if common_validators::has_any(&self.schema, &arr_key) {
                     return;
                 }
                 let mut existing_types = HashSet::new();
@@ -63,9 +63,9 @@ impl Parser {
                     if !unknown_allowed {
                         self.continue_validate(s, k_clone.clone());
                     } else {
-                        match self.get_type(&arr_key, j_type) {
+                        match common_validators::get_type(&self.schema, &arr_key, j_type) {
                             Some(_) => self.continue_validate(s, k_clone.clone()),
-                            _ => {},
+                            _ => {}
                         }
                     }
                 }
@@ -95,7 +95,9 @@ impl Parser {
                     let mut cc = k_clone.clone();
                     cc.push(k.to_string());
                     let cc_key = Parser::get_hash(&cc);
-                    if self.is_missing_type(&cc_key) || self.has_any(&cc_key) {
+                    if self.is_missing_type(&cc_key)
+                        || common_validators::has_any(&self.schema, &cc_key)
+                    {
                         return;
                     }
                     self.check_has_type(&cc_key, SchemaParser::get_match_from_json(v));
@@ -134,34 +136,6 @@ impl Parser {
             _ => {}
         }
         return t;
-    }
-
-    fn get_type(&mut self, hash_key: &String, target_type: MatchType) -> Option<Type> {
-        match self.schema.get(hash_key) {
-            None => {}
-            Some(v) => {
-                for i in v.into_iter() {
-                    if target_type == i.0 {
-                        return Some(i.1.clone());
-                    }
-                }
-            }
-        }
-        return None;
-    }
-
-    fn has_any(&mut self, key: &String) -> bool {
-        match self.schema.get(key) {
-            Some(v) => {
-                for i in v.into_iter() {
-                    if i.0 == MatchType::Any {
-                        return true;
-                    }
-                }
-                return false;
-            }
-            None => false,
-        }
     }
 
     fn check_missing_types(&mut self, key: &String, curren_types: &HashSet<String>) {

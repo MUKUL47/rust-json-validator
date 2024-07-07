@@ -13,7 +13,7 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[[]]"#).unwrap();
+    let a = parse(r#"[1,2]"#).unwrap();
     let s = Schema::array_options(
         vec![
             Schema::string(),
@@ -22,7 +22,7 @@ fn main() {
                     Schema::string(),
                     Schema::array(vec![Schema::string_options(vec![])]),
                 ],
-                vec![ArrayOptions::NestedRequired, ArrayOptions::Required],
+                vec![ ArrayOptions::Required],
             )
         ],
         vec![],
