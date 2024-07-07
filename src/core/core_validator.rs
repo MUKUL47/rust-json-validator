@@ -5,7 +5,7 @@ use json::JsonValue;
 use crate::{
     error::{ErrorController, ValidateError},
     schema::{
-        schema_type::{ArrayType, BooleanType, MatchType, MatchTypeString, Type, TypeValidator},
+        schema_type::{MatchType, MatchTypeString, Type, TypeValidator},
         schema_type_options::ObjectOptions,
         SCHEMA_TYPE,
     },

@@ -1,8 +1,7 @@
-use std::collections::HashSet;
 
 use crate::{
     error::ValidateError,
-    schema::{schema_type::Type, schema_type_options::ArrayOptions, SCHEMA_TYPE},
+    schema::{schema_type::Type, schema_type_options::ArrayOptions},
 };
 
 pub fn validate_array(

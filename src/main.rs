@@ -1,13 +1,8 @@
 use core::{core_validator::CoreValidator, schema_validator::SchemaValidator};
-use std::{
-    any::{self, Any},
-    collections::HashMap,
-};
 mod schema;
-use json::{number::Number, object::Object, parse};
+use json::{parse};
 use schema::{
-    schema_type::{ArrayType, Record},
-    schema_type_options::{ArrayOptions, ObjectOptions, Options, StringOptions},
+    schema_type_options::{ArrayOptions, Options},
     Schema,
 };
 mod core;

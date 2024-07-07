@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use schema_type::{AnyType, ArrayType, BooleanType, MatchType, NullType, StringTypeOptions};
-use schema_type::{NumberType, ObjectType, Record, StringType, Type};
+use schema_type::{ArrayType, BooleanType, MatchType, NullType, StringTypeOptions};
+use schema_type::{NumberType, ObjectType, Record, Type};
 use schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions};
 
 pub mod schema_type;

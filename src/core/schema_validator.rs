@@ -1,7 +1,6 @@
 use crate::schema::{
-    schema_type::{ArrayType, MatchType, Type, TypeValidator},
-    schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions},
-    Schema, SCHEMA_TYPE,
+    schema_type::{MatchType, Type, TypeValidator},
+    schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions}, SCHEMA_TYPE,
 };
 use std::collections::HashMap;
 

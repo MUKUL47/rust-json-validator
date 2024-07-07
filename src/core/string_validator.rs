@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use crate::{
-    error::{ErrorController, ValidateError},
+    error::{ValidateError},
     schema::{
-        schema_type::{StringTypeOptions, Type},
+        schema_type::{Type},
         schema_type_options::StringOptions,
         SCHEMA_TYPE,
     },
