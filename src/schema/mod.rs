@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use schema_type::{ArrayType, BooleanType, MatchType, NullType, StringTypeOptions};
 use schema_type::{NumberType, ObjectType, Record, Type};
@@ -38,13 +38,36 @@ impl Schema {
         Type::ObjectType(ObjectType {
             records,
             options: vec![],
+            forbidden_hashset: HashSet::new(),
+            required_hashset: HashSet::new(),
         })
     }
 
     pub fn object_options(rr: &mut Vec<Record>, options: Vec<ObjectOptions>) -> Type {
         let mut s = Schema::object(rr);
         match &mut s {
-            Type::ObjectType(v) => v.options = options,
+            Type::ObjectType(v) => {
+                v.options = options;
+                let mut fhs: HashSet<String> = HashSet::new();
+                let mut rhs: HashSet<String> = HashSet::new();
+                for i in v.options.iter_mut() {
+                    match i {
+                        ObjectOptions::Forbidden(f) => {
+                            for v in f.iter_mut() {
+                                fhs.insert(v.to_string());
+                            }
+                        }
+                        ObjectOptions::RequiredFields(f) => {
+                            for v in f.iter_mut() {
+                                rhs.insert(v.to_string());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                v.forbidden_hashset = fhs;
+                v.required_hashset = rhs;
+            }
             _ => {}
         }
         s

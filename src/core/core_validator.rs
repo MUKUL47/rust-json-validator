@@ -12,7 +12,8 @@ use crate::{
 };
 
 use super::{
-    array_validator, common_validators, schema_validator::SchemaValidator, string_validator::validate_string
+    array_validator, common_validators, schema_validator::SchemaValidator,
+    string_validator::validate_string,
 };
 
 pub struct CoreValidator {
@@ -120,26 +121,8 @@ impl CoreValidator {
                 match common_validators::get_type(&self.schema, &hash_key, MatchType::Object) {
                     Some(v) => {
                         unknown_allowed = v.allow_unknown();
-                        match v {
-                            Type::ObjectType(r) => {
-                                for record in r.records.iter() {
-                                    if record.1.is_required() {
-                                        object_keys.insert(record.0.to_string());
-                                    }
-                                }
-                                for o in r.options.into_iter() {
-                                    match o {
-                                        ObjectOptions::Forbidden(k) => {
-                                            for s in k.into_iter() {
-                                                forbidden_keys_set.insert(s.to_string());
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
+                        object_keys = v.get_required_keys();
+                        forbidden_keys_set = v.get_forbidden_set();
                     }
                     _ => {}
                 }
@@ -151,7 +134,8 @@ impl CoreValidator {
                     new_original_keys.push(k.to_string());
                     let cc_key = CoreValidator::get_hash(&cc);
                     if forbidden_keys_set.contains(&k.to_string()) {
-                        forbidden_keys.push(CoreValidator::get_hash(&new_original_keys).to_string());
+                        forbidden_keys
+                            .push(CoreValidator::get_hash(&new_original_keys).to_string());
                         continue;
                     }
                     object_keys.remove(&k.to_string());
@@ -215,7 +199,12 @@ impl CoreValidator {
         return t;
     }
 
-    fn check_missing_types(&mut self, key: &String, curren_types: &HashSet<String>, original_key: &String){
+    fn check_missing_types(
+        &mut self,
+        key: &String,
+        curren_types: &HashSet<String>,
+        original_key: &String,
+    ) {
         let mut missing_types: Vec<MatchType> = Vec::new();
         match self.schema.get(key) {
             Some(v) => {
@@ -228,7 +217,10 @@ impl CoreValidator {
             None => {}
         }
         if missing_types.len() > 0 {
-            self.throw_error(ValidateError::MissingTypes(original_key.clone(), missing_types))
+            self.throw_error(ValidateError::MissingTypes(
+                original_key.clone(),
+                missing_types,
+            ))
         }
     }
 

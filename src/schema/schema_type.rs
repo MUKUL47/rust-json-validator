@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::schema_type_options::{
     ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions,
 };
@@ -18,7 +20,8 @@ pub trait TypeValidator {
     fn is_required(&self) -> bool;
     fn allow_unknown(&self) -> bool;
     fn is_nested_required(&self) -> bool;
-    fn is_forbidden_objectkey(&self, k: &String) -> bool;
+    fn get_forbidden_set(&self) -> HashSet<String>;
+    fn get_required_keys(&self) -> HashSet<String>;
 }
 
 impl TypeValidator for Type {
@@ -47,20 +50,16 @@ impl TypeValidator for Type {
             _ => return false,
         }
     }
-    fn is_forbidden_objectkey(&self, k: &String) -> bool {
+    fn get_forbidden_set(&self) -> HashSet<String> {
         match self {
-            Type::ObjectType(o) => {
-                for i in o.options.iter() {
-                    match i {
-                        ObjectOptions::Forbidden(keys) => {
-                            return keys.contains(&k.as_str());
-                        }
-                        _ => {}
-                    }
-                }
-                return false;
-            }
-            _ => return false,
+            Type::ObjectType(o) => o.forbidden_hashset.clone(),
+            _ => HashSet::new(),
+        }
+    }
+    fn get_required_keys(&self) -> HashSet<String> {
+        match self {
+            Type::ObjectType(o) => o.required_hashset.clone(),
+            _ => HashSet::new(),
         }
     }
 }
@@ -130,6 +129,8 @@ pub struct NullType {
 pub struct ObjectType {
     pub records: std::collections::HashMap<String, Type>,
     pub options: Vec<ObjectOptions>,
+    pub forbidden_hashset: HashSet<String>,
+    pub required_hashset: HashSet<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
