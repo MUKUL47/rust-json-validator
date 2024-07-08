@@ -22,6 +22,7 @@ pub trait TypeValidator {
     fn is_nested_required(&self) -> bool;
     fn get_forbidden_set(&self) -> HashSet<String>;
     fn get_required_keys(&self) -> HashSet<String>;
+    fn to_string(&self) -> String;
 }
 
 impl TypeValidator for Type {
@@ -60,6 +61,18 @@ impl TypeValidator for Type {
         match self {
             Type::ObjectType(o) => o.required_hashset.clone(),
             _ => HashSet::new(),
+        }
+    }
+    fn to_string(&self) -> String {
+        match self {
+            Type::StringTypeOptions(_) => "String".to_string(),
+            Type::ArrayType(_) => "Array".to_string(),
+            Type::ObjectType(_) => "Object".to_string(),
+            Type::Null(_) => "Null".to_string(),
+            Type::BooleanType(_) => "Boolean".to_string(),
+            Type::NumberType(_) => "Number".to_string(),
+            Type::AnyType => "Any".to_string(),
+            Type::None => "None".to_string(),
         }
     }
 }

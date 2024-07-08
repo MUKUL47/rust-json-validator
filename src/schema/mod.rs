@@ -7,6 +7,7 @@ use schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, S
 pub mod schema_type;
 pub mod schema_type_options;
 pub type SCHEMA_TYPE = HashMap<String, Vec<(MatchType, Type)>>;
+pub const ARRAY_INDEX : &'static str = "[INDEX]";
 
 pub struct Schema;
 

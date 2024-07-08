@@ -1,31 +1,23 @@
 use crate::schema::{
     schema_type::{MatchType, Type, TypeValidator},
-    schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions}, SCHEMA_TYPE,
+    schema_type_options::{ArrayOptions, NumberOptions, ObjectOptions, Options, StringOptions},
+    ARRAY_INDEX, SCHEMA_TYPE,
 };
 use std::collections::HashMap;
 
 pub struct SchemaValidator {
-    pub k: Vec<Vec<String>>,
-    pub hm: SCHEMA_TYPE,
+    pub schema_map: SCHEMA_TYPE,
 }
 impl SchemaValidator {
     pub fn new() -> Self {
         SchemaValidator {
-            k: vec![],
-            hm: HashMap::default(),
+            schema_map: HashMap::default(),
         }
     }
-    pub fn parse(&mut self, t: Type, kk: Vec<String>) {
-        let mut keys: Vec<String> = kk.clone();
-        if keys.len() == 0 {
-            keys = match t {
-                Type::ArrayType(_) => vec!["Array".to_string()],
-                Type::ObjectType(_) => vec!["Object".to_string()],
-                _ => panic!("Expected Array or Object"),
-            };
-            self.push(keys.clone(), t.clone());
-        }
-        self.start_parsing(&mut t.clone(), keys, t.is_nested_required());
+    pub fn parse(&mut self, current_type: &mut Type) {
+        let keys: Vec<String> = vec![current_type.to_string()];
+        self.push(&keys, current_type);
+        self.start_parsing(current_type, keys, current_type.is_nested_required());
     }
 
     fn start_parsing(&mut self, t: &mut Type, keys: Vec<String>, nested_required: bool) {
@@ -33,11 +25,11 @@ impl SchemaValidator {
             Type::ArrayType(v) => {
                 for c in v.children.iter_mut().enumerate() {
                     let mut vec_clone = keys.clone();
-                    vec_clone.push("[INDEX]".to_string());
+                    vec_clone.push(ARRAY_INDEX.to_string());
                     if nested_required {
                         self.update_nested_required(c.1);
                     }
-                    self.push(vec_clone.clone(), c.1.clone());
+                    self.push(&vec_clone, c.1);
                     let mut final_c = c.1; //.clone();
                     let nested = final_c.is_nested_required();
                     self.start_parsing(&mut final_c, vec_clone, nested_required || nested);
@@ -50,8 +42,8 @@ impl SchemaValidator {
                     if nested_required {
                         self.update_nested_required(c.1 .1);
                     }
-                    self.push(vec_clone.clone(), c.1 .1.clone());
-                    let mut final_c = c.1 .1; //.clone();
+                    self.push(&vec_clone, c.1 .1);
+                    let mut final_c = c.1 .1;
                     let nested = final_c.is_nested_required();
                     self.start_parsing(&mut final_c, vec_clone, nested_required || nested);
                 }
@@ -77,17 +69,19 @@ impl SchemaValidator {
         }
     }
 
-    fn push(&mut self, keys: Vec<String>, t: Type) {
-        let key = keys.join(".");
-        let mut cc = self.hm.clone();
-        match cc.get_mut(&key) {
+    fn push(&mut self, keys: &Vec<String>, t: &mut Type) {
+        let hash_key = keys.join(".");
+        match self.schema_map.get(&hash_key) {
             None => {
-                self.hm
-                    .insert(key, vec![(SchemaValidator::get_type_match(&t), t)]);
+                self.schema_map.insert(
+                    hash_key,
+                    vec![(SchemaValidator::get_type_match(&t), t.clone())],
+                );
             }
             Some(v) => {
-                v.push((SchemaValidator::get_type_match(&t), t));
-                self.hm.insert(key, v.to_vec());
+                let mut v_clone = v.clone();
+                v_clone.push((SchemaValidator::get_type_match(&t), t.clone()));
+                self.schema_map.insert(hash_key, v_clone.to_vec());
             }
         }
     }
@@ -115,5 +109,9 @@ impl SchemaValidator {
             json::JsonValue::Object(_) => MatchType::Object,
             _ => MatchType::None,
         }
+    }
+
+    pub fn get_schema_map(&self) -> &SCHEMA_TYPE {
+        &self.schema_map
     }
 }

@@ -1,14 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 static INDEX: &'static str = "[INDEX]";
 use json::JsonValue;
 
 use crate::{
     error::{ErrorController, ValidateError},
-    schema::{
-        schema_type::{MatchType, MatchTypeString, Type, TypeValidator},
-        schema_type_options::ObjectOptions,
-        SCHEMA_TYPE,
-    },
+    schema::schema_type::{MatchType, MatchTypeString, Type, TypeValidator},
 };
 
 use super::{
@@ -17,17 +13,15 @@ use super::{
 };
 
 pub struct CoreValidator {
-    schema: SCHEMA_TYPE,
+    schema: SchemaValidator,
     first_type_val: Vec<String>,
     pub error_controller: ErrorController,
 }
 impl CoreValidator {
-    pub fn new(first_type: Type, schema: HashMap<String, Vec<(MatchType, Type)>>) -> Self {
-        let first_type_val = match first_type {
-            Type::ArrayType(_) => vec!["Array".to_string()],
-            Type::ObjectType(_) => vec!["Object".to_string()],
-            _ => panic!("Expected Array or Object"),
-        };
+    pub fn new(first_type: &mut Type) -> Self {
+        let first_type_val = vec![first_type.to_string()];
+        let mut schema = SchemaValidator::new();
+        schema.parse(first_type);
         CoreValidator {
             schema,
             first_type_val,
@@ -35,7 +29,7 @@ impl CoreValidator {
         }
     }
 
-    pub fn start(&mut self, json: json::JsonValue) {
+    pub fn start(&mut self, json: &json::JsonValue) {
         self.continue_validate(
             json,
             self.first_type_val.clone(),
@@ -45,7 +39,7 @@ impl CoreValidator {
 
     fn continue_validate(
         &mut self,
-        json: json::JsonValue,
+        json: &json::JsonValue,
         keys: Vec<String>,
         original_keys: Vec<String>,
     ) {
@@ -58,19 +52,17 @@ impl CoreValidator {
         match json {
             JsonValue::Array(v) => {
                 let mut unknown_allowed: bool = false;
-                match self.check_has_type(&hash_key, MatchType::Array, &original_hash_key) {
-                    Some(t) => {
-                        unknown_allowed = t.allow_unknown();
-                        match array_validator::validate_array(&t, &v, &original_hash_key) {
-                            Some(e) => self.throw_error(e),
-                            _ => {}
-                        }
+                if let Some(t) =
+                    self.check_has_type(&hash_key, MatchType::Array, &original_hash_key)
+                {
+                    unknown_allowed = t.allow_unknown();
+                    if let Some(e) = array_validator::validate_array(&t, &v, &original_hash_key) {
+                        self.throw_error(e)
                     }
-                    _ => {}
-                }
+                };
                 k_clone.push(INDEX.to_string());
                 let arr_key = CoreValidator::get_hash(&k_clone);
-                if common_validators::has_any(&self.schema, &arr_key) {
+                if common_validators::has_any(&self.schema.get_schema_map(), &arr_key) {
                     return;
                 }
                 let mut existing_types = HashSet::new();
@@ -83,11 +75,12 @@ impl CoreValidator {
                     if !unknown_allowed {
                         self.continue_validate(s, k_clone.clone(), new_original_keys);
                     } else {
-                        match common_validators::get_type(&self.schema, &arr_key, j_type) {
-                            Some(_) => {
-                                self.continue_validate(s, k_clone.clone(), new_original_keys)
-                            }
-                            _ => {}
+                        if let Some(_) = common_validators::get_type(
+                            &self.schema.get_schema_map(),
+                            &arr_key,
+                            j_type,
+                        ) {
+                            self.continue_validate(s, k_clone.clone(), new_original_keys)
                         }
                     }
                 }
@@ -97,14 +90,17 @@ impl CoreValidator {
                 self.check_has_type(&hash_key, MatchType::Boolean, &original_hash_key);
             }
             JsonValue::String(_) | JsonValue::Short(_) => {
-                match self.check_has_type(&hash_key, MatchType::String, &original_hash_key) {
-                    Some(_) => {
-                        match validate_string(&self.schema, &json, &hash_key, &original_hash_key) {
-                            Some(e) => self.throw_error(e),
-                            _ => {}
-                        }
+                if let Some(_) =
+                    self.check_has_type(&hash_key, MatchType::String, &original_hash_key)
+                {
+                    if let Some(e) = validate_string(
+                        &self.schema.get_schema_map(),
+                        &json,
+                        &hash_key,
+                        &original_hash_key,
+                    ) {
+                        self.throw_error(e);
                     }
-                    _ => {}
                 }
             }
             JsonValue::Null => {
@@ -118,13 +114,14 @@ impl CoreValidator {
                 let mut object_keys: HashSet<String> = HashSet::new();
                 let mut forbidden_keys: Vec<String> = vec![];
                 let mut forbidden_keys_set: HashSet<String> = HashSet::new();
-                match common_validators::get_type(&self.schema, &hash_key, MatchType::Object) {
-                    Some(v) => {
-                        unknown_allowed = v.allow_unknown();
-                        object_keys = v.get_required_keys();
-                        forbidden_keys_set = v.get_forbidden_set();
-                    }
-                    _ => {}
+                if let Some(v) = common_validators::get_type(
+                    &self.schema.get_schema_map(),
+                    &hash_key,
+                    MatchType::Object,
+                ) {
+                    unknown_allowed = v.allow_unknown();
+                    object_keys = v.get_required_keys();
+                    forbidden_keys_set = v.get_forbidden_set();
                 }
                 for (k, v) in records.iter() {
                     let mut cc = k_clone.clone();
@@ -140,13 +137,16 @@ impl CoreValidator {
                     }
                     object_keys.remove(&k.to_string());
                     if !unknown_allowed {
-                        self.continue_validate(v.clone(), cc.clone(), new_original_keys);
+                        self.continue_validate(v, cc.clone(), new_original_keys);
                     } else {
-                        match common_validators::get_type(&self.schema, &cc_key, value_obj_type) {
-                            Some(next_type) if next_type != Type::AnyType => {
-                                self.continue_validate(v.clone(), cc.clone(), new_original_keys)
+                        if let Some(next_type) = common_validators::get_type(
+                            &self.schema.get_schema_map(),
+                            &cc_key,
+                            value_obj_type,
+                        ) {
+                            if next_type != Type::AnyType {
+                                self.continue_validate(v, cc.clone(), new_original_keys)
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -175,7 +175,7 @@ impl CoreValidator {
     ) -> Option<Type> {
         let mut match_types: Vec<MatchType> = vec![];
         let mut t: Option<Type> = None;
-        match self.schema.get(hash_key) {
+        match self.schema.get_schema_map().get(hash_key) {
             None => {}
             Some(v) => {
                 for i in v.into_iter() {
@@ -206,7 +206,7 @@ impl CoreValidator {
         original_key: &String,
     ) {
         let mut missing_types: Vec<MatchType> = Vec::new();
-        match self.schema.get(key) {
+        match self.schema.get_schema_map().get(key) {
             Some(v) => {
                 for i in v.into_iter() {
                     if !curren_types.contains(&i.0.to_string()) && i.1.is_required() {
@@ -225,7 +225,7 @@ impl CoreValidator {
     }
 
     fn is_missing_type(&mut self, key: &String, original_key: &String) -> bool {
-        match self.schema.get(key) {
+        match self.schema.get_schema_map().get(key) {
             None => {
                 self.throw_error(ValidateError::UnexpectedTypeFound(original_key.to_string()));
                 return true;

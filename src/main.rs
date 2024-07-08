@@ -9,8 +9,8 @@ use schema::{
 mod core;
 mod error;
 fn main() {
-    let a = parse(r#"[{"vv" : 3, "bb" : [132]}, {"vv" : 3, "bb" : [1,"aaaa", 2]}]"#).unwrap();
-    let s = Schema::array_options(
+    let a = parse(r#"[{"vv" : 3, "bb" : [132, null]}, {"vv" : 3, "bb" : [1,"aaaa", 2]}]"#).unwrap();
+    let mut s = Schema::array_options(
         vec![Schema::object_options(
             &mut vec![
                 Record::V("aa", Schema::string()),
@@ -21,7 +21,7 @@ fn main() {
                             StringOptions::ShouldMatch("123321"),
                             StringOptions::ShouldMatch("aaaa"),
                         ])],
-                        vec![ArrayOptions::AllowUnknown],
+                        vec![],
                     ),
                 ),
                 Record::V("vv", Schema::number()),
@@ -34,10 +34,8 @@ fn main() {
         vec![ArrayOptions::MinRange(2), ArrayOptions::NestedRequired],
     );
 
-    let mut pp = SchemaValidator::new();
-    pp.parse(s.clone(), vec![]);
-    let mut parse = CoreValidator::new(s, pp.hm);
-    parse.start(a);
+    let mut parse = CoreValidator::new(&mut s);
+    parse.start(&a);
     for e in parse.error_controller.get_errors_messages().iter() {
         println!("{:?}", e); //.len());
     }
